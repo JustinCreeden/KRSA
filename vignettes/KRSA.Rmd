@@ -182,14 +182,14 @@ To compare between samples, a two-group comparison is performed. In this case, t
 
 -   **B vs A**
 
-The *Slope_Transforemed* ratio between each group, paired by chip, is calculated to the fold change. Based on the fold change, peptides that pass a certain fold change threshold are considered significant hits. Also, quality control steps applied in each comparison to filter out peptides that do not reach specific criteria:
+The *Slope_Transformed* ratio between each group, paired by chip, is calculated to the fold change. Based on the fold change, peptides that pass a certain fold change threshold are considered significant hits. Also, quality control steps applied in each comparison to filter out peptides that do not reach specific criteria:
 
 -   The *Medain_SigmBg* at max exposure *200ms* must be above a certain value\
 -   $R^2$ of the linear model fit must be above a threshold value
 
 These *Filtering Parameters* (fold change threshold, QC criteria) can be modified to adjust the stringency of the analysis. The *Filtering Parameters* that are used for this analysis:
 
--   The *Medain_SigmBg* at max exposure *200ms* must be equal or above 5\
+-   The *Median_SigmBg* at max exposure *200ms* must be equal or above 5\
 -   $R^2$ of the linear model fit must be above or equal 0.8\
 -   Log fold change (LFC) cutoffs at (0.2,0.3)
 
