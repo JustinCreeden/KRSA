@@ -29,39 +29,54 @@ library(furrr) # can be used for parallel computing
 
 ###JFC_All you need to do is change these values
 
-#Comparison
-JFC_comparand_a <- "e_h_f"
-JFC_comparand_b <- "c_h_c"
+#Define Experiment ID
+JFC_experiment_ID <- "June16_PTK"
 
-#Identification of chip 
+
+#Define Comparison variables
+JFC_comparand_a_as_it_appears_in_input <- "e_human_liver_fibrosis"
+JFC_comparand_a_shorthand <- "h_f"
+
+JFC_comparand_b_as_it_appears_in_input <- "c_human_liver_normal"
+JFC_comparand_b_shorthand <- "h_c"
+
+
+#Define chip variable: PTK, STK, PTK-single, STK-single. Single here uses per-kinase mapping instead of per-family mapping
 JFC_chip_value <- "PTK"
 
-#Input data
-JFC_directory_input_Median_SigmBg <- "input/June16_PTK-KRSA/_ExportstosKRSA_Median_SigmBg_210305150653.txt"
-JFC_directory_input_Signal_Saturation <- "input/June16_PTK-KRSA/_ExportstosKRSA_Signal_Saturation_210305150655.txt"
+#Define path for input files
+JFC_directory_input_Median_SigmBg <- "jfc_input/June16_PTK-KRSA/_ExportstosKRSA_Median_SigmBg_210305150653.txt"
+JFC_directory_input_Signal_Saturation <- "jfc_input/June16_PTK-KRSA/_ExportstosKRSA_Signal_Saturation_210305150655.txt"
 
-####Variables under this line will likely remain constant because they are dynamically generated based on variables above
+#Define sample column name
+JFC_sample <- "SampleName"
 
-#identification variables
-JFC_comparison <- paste0(JFC_comparand_a,"-v-",JFC_comparand_b)
-JFC_experiment_ID <- paste0(JFC_chip_value,JFC_comparison)
+#Define group column name
+JFC_group <- "Comment 1"
+
+############################################################
+#Variables under this line will likely remain constant because they are dynamically generated based on variables above
+
+#Define identification variables
+JFC_comparison <- paste0(JFC_comparand_a_shorthand,"-v-",JFC_comparand_b_shorthand)
+
 
 
 #Define Directories
-JFC_directory_output <- "output/"
+JFC_directory_output <- "jfc_output/"
 JFC_directory_output_experiment_ID <- paste0(JFC_directory_output,JFC_experiment_ID,"/")
 JFC_directory_output_whole <- paste0(JFC_directory_output_experiment_ID,"whole","/")
 JFC_directory_output_comparison <- paste0(JFC_directory_output_experiment_ID,JFC_comparison,"/")
 JFC_directory_output_comparison_single <- paste0(JFC_directory_output_experiment_ID,JFC_comparison,"/","single","/")
   
-  #Directories; dynamically generated; you shouldn't need to change these at all
+#Directories; dynamically generated; you shouldn't need to change these at all
 
-  #create output directory
-  if (dir.exists(JFC_directory_output)==F){dir.create(JFC_directory_output)}
-  if (dir.exists(JFC_directory_output_experiment_ID)==F){dir.create(JFC_directory_output_experiment_ID)}
-  if (dir.exists(JFC_directory_output_whole)==F){dir.create(JFC_directory_output_whole)}
-  if (dir.exists(JFC_directory_output_comparison)==F){dir.create(JFC_directory_output_comparison)}
-  if (dir.exists(JFC_directory_output_comparison_single)==F){dir.create(JFC_directory_output_comparison_single)}
+#create output directory
+if (dir.exists(JFC_directory_output)==F){dir.create(JFC_directory_output)}
+if (dir.exists(JFC_directory_output_experiment_ID)==F){dir.create(JFC_directory_output_experiment_ID)}
+if (dir.exists(JFC_directory_output_whole)==F){dir.create(JFC_directory_output_whole)}
+if (dir.exists(JFC_directory_output_comparison)==F){dir.create(JFC_directory_output_comparison)}
+if (dir.exists(JFC_directory_output_comparison_single)==F){dir.create(JFC_directory_output_comparison_single)}
 
 
 
@@ -69,7 +84,6 @@ JFC_directory_output_comparison_single <- paste0(JFC_directory_output_experiment
 ```
 
  
-```
 
 
 # Introduction
@@ -81,8 +95,8 @@ The Pamstation12 instrument provides a profiling of kinase activity of cell or t
 \newpage
 
 ```{r, echo=F,out.width = "400px",out.width="450px", fig.align='center', cache=TRUE}
-knitr::include_graphics("images/pamgene_workflow.png")
-knitr::include_graphics("images/pamgene_detectionFig.png")
+knitr::include_graphics("vignettes/images/pamgene_workflow.png")
+knitr::include_graphics("vignettes/images/pamgene_detectionFig.png")
 ```
 
 \newpage
@@ -125,10 +139,14 @@ The first step will be reading the crosstab view bionavigator files (Median_Sigm
 ```{r readData, include=FALSE, cache=TRUE}
 
 # Define chip type
-chipType <- "STK"
+chipType <- JFC_chip_value
 
 # Read crosstab view bionavigator files and tidy data
-data <- krsa_read("data_files/example_Median_SigmBg.txt", "data_files/example_Signal_Saturation.txt")
+data <- krsa_read(JFC_directory_input_Median_SigmBg, JFC_directory_input_Signal_Saturation)
+
+#Rename sample and group columns in input data
+names(data)[names(data) == paste0(JFC_group)] <- "Group"
+
 
 ```
 
@@ -141,7 +159,8 @@ We will perform a couple of quality control steps to deal with negative values i
 krsa_qc_steps(data) -> data
 
 # Define sample groups
-data %>% mutate(Group = SampleName, SampleName = paste0(SampleName,"_" ,Barcode)) -> data
+#original (this no longer needs to be run for JFC data)
+#data %>% mutate(Group = SampleName, SampleName = paste0(SampleName,"_" ,Barcode)) -> data
 
 # extract end level signal values @ all max exposure time (200ms)
 krsa_extractEndPointMaxExp(data, chipType) -> data_pw_200
@@ -229,7 +248,7 @@ krsa_heatmap_grouped(data_modeled$grouped, new_pep, scale = "row")
 
 To compare between samples, a two-group comparison is performed. In this case, the two group comparisons are:
 
--   **B vs A**
+-   **JFC_comparand_a vs JFC_comparand_b**
 
 The *Slope_Transformed* ratio between each group, paired by chip, is calculated to the fold change. Based on the fold change, peptides that pass a certain fold change threshold are considered significant hits. Also, quality control steps applied in each comparison to filter out peptides that do not reach specific criteria:
 
@@ -245,7 +264,7 @@ These *Filtering Parameters* (fold change threshold, QC criteria) can be modifie
 ```{r groupDiff,echo=T, fig.height=8,fig.width=8,fig.align="center", cache=TRUE}
 
 # Define Groups to be compared
-comparisons <- list(Comp1 = c("B", "A"))
+comparisons <- list(Comp1 = c(paste0(JFC_comparand_a_as_it_appears_in_input), paste0(JFC_comparand_b_as_it_appears_in_input)))
 
 # This function will run both QC steps (krsa_filter_lowPeps, krsa_filter_nonLinear) and krsa_filter_ref_pep
 krsa_quick_filter(data = data_pw_200, data2 = data_modeled$scaled,
@@ -255,6 +274,9 @@ krsa_quick_filter(data = data_pw_200, data2 = data_modeled$scaled,
 # This function calculates log2 fold change values between the defined groups
 # The byChip argument lets you calculates the log2 fold change the results within each chip
 krsa_group_diff(data_modeled$scaled, comparisons$Comp1, pep_passed_qc, byChip = T) -> diff_df
+
+#Save LFC table
+diff_df %>% write_delim(paste0(JFC_directory_output_comparison,Sys.Date(),"-","LCF_df.txt"), delim = "\t")
 
 # Extract top peptides based on the LFC cutoff
 krsa_get_diff(diff_df,totalMeanLFC ,c(0.2,0.3)) %>% list("meanLFC" = .) -> sigPeps
@@ -268,7 +290,7 @@ sigPeps_total <- list(sigPeps, sigPepsPerChip) %>% unlist(recursive = F) %>%  un
 
 \newpage
 
-### B vs A (Heatmap)
+### JFC_comparand_a vs JFC_comparand_b (Heatmap)
 
 After applying the *Filtering Parameters* for this group comparison, only *`r length(sigPeps$meanLFC[["0.2"]])`*/141 peptides carried forward in the analysis (i.e. *`r length(sigPeps$meanLFC[["0.2"]])` hits*). Below are some figures to visualize the differences between these samples for considering these *hits*.
 
@@ -281,7 +303,7 @@ krsa_heatmap(data_modeled$normalized, sigPeps$meanLFC$`0.2`, groups = comparison
 
 \newpage
 
-### B vs A (Violin Plot)
+### JFC_comparand_a vs JFC_comparand_b (Violin Plot)
 
 ```{r violinIndPlot,echo=T, fig.align="center", fig.height=8, fig.width=8, cache=TRUE, message=FALSE}
 # generates a violin plot using the selected groups and peptides
@@ -301,7 +323,7 @@ krsa_violin_plot_grouped(data_modeled$grouped, sigPeps$meanLFC$`0.2`, comparison
 
 \newpage
 
-### B vs A (Waterfall Plot)
+### JFC_comparand_a vs JFC_comparand_b (Waterfall Plot)
 
 This waterfall represents the log2 fold changes between the two groups at each peptide.
 
@@ -312,7 +334,7 @@ krsa_waterfall(diff_df, 0.2, byChip = T)
 
 \newpage
 
-### B vs A (Curve Plot)
+### JFC_comparand_a vs JFC_comparand_b (Curve Plot)
 
 We generate curves plots per peptide using the last cycle data to visualize the linear fit model
 
@@ -321,7 +343,7 @@ We generate curves plots per peptide using the last cycle data to visualize the 
 krsa_curve_plot(data_pw, sigPeps$meanLFC$`0.2`[1:10], groups = comparisons$Comp1)
 ```
 
-### B vs A (Upstream Kinase Analysis)
+### JFC_comparand_a vs JFC_comparand_b (Upstream Kinase Analysis)
 
 The lab carefully curated and mapped the kinases that can act and phosphorylate each peptide present on the chip. This was achieved by using multiple sources including GPS 3.0, Kinexus Phosphonet, PhosphoELM and PhosphoSite Plus. Based on that association between peptides and kinases, a random sampling analysis is performed for these hits. The basic idea of *KRSA* is: For each iteration (*2000* iterations performed in this analysis), the same number of hits are randomly selected from the total 141/or 193 peptides present on the chip. Predicted kinases are then mapped to this sample list of peptides and number of kinases are determined. The kinase count from the actual hits and random sampling is then compared to determine the significance.
 
@@ -329,13 +351,15 @@ The lab carefully curated and mapped the kinases that can act and phosphorylate 
 
 
 # load in chip coverage and kinase-substrate files OR upload your own files
-# if PTK chip, use:
-# chipCov <- KRSA_coverage_PTK_PamChip_86402_v1
-# KRSA_file <- KRSA_Mapping_PTK_PamChip_86402_v1
-
-# STK chip
-chipCov <- KRSA_coverage_STK_PamChip_87102_v1
-KRSA_file <- KRSA_Mapping_STK_PamChip_87102_v1
+# define coverage and mapping based on chiptype
+if(chipType == "STK"){chipCov <- KRSA_coverage_STK_PamChip_87102_v1}
+if(chipType == "STK"){KRSA_file <- KRSA_Mapping_STK_PamChip_87102_v1}
+if(chipType == "PTK"){chipCov <- KRSA_coverage_PTK_PamChip_86402_v1}
+if(chipType == "PTK"){KRSA_file <- KRSA_Mapping_PTK_PamChip_86402_v1}
+if(chipType == "STK-single"){chipCov <- KRSA_coverage_STK_PamChip_87102_v1}
+if(chipType == "STK-single"){KRSA_file <- KRSA_Mapping_STK_PamChip_87102_v1}
+if(chipType == "PTK-single"){chipCov <- KRSA_coverage_PTK_PamChip_86402_v1}
+if(chipType == "PTK-single"){KRSA_file <- KRSA_Mapping_PTK_PamChip_86402_v1}
 
 
 
@@ -347,7 +371,8 @@ krsa(sigPeps$meanLFC$`0.2`, return_count = T, seed = 123, itr = 2000,
 kable(head(fin$KRSA_Table,25), digits = 3)
 
 # to save file
-#fin$KRSA_Table %>% write_delim("acrossChip_KRSA_FullTable_comp1.txt", delim = "\t")
+fin$KRSA_Table %>% write_delim(paste0(JFC_directory_output_comparison,Sys.Date(),"-","acrossChip_KRSA_FullTable_comp1.txt"), delim = "\t")
+      
 
 # find top and bottom kinases
 bothways <- c(pull(head(fin$KRSA_Table, 10), Kinase), pull(tail(fin$KRSA_Table, 10), Kinase))
@@ -390,7 +415,7 @@ df %>%
   select(Kinase, Z, method) %>% group_by(Kinase) %>% mutate(AvgZ = mean(Z)) -> AvgZTable
 
 # save file
-#AvgZTable %>% write_delim("acrossChip_KRSA_Table_comp1.txt", delim = "\t")
+AvgZTable %>% write_delim(paste0(JFC_directory_output_comparison,Sys.Date(),"-","acrossChip_KRSA_Table_comp1.txt"), delim = "\t")
 
 # Creates an average Z score table using the within chip analysis
 df %>% 
@@ -398,7 +423,7 @@ df %>%
   select(Kinase, Z, method) %>% group_by(Kinase) %>% mutate(AvgZ = mean(Z)) -> AvgZTable2
 
 # save file
-#AvgZTable %>% write_delim("withinChip_KRSA_Table_comp1.txt", delim = "\t")
+AvgZTable %>% write_delim(paste0(JFC_directory_output_comparison,Sys.Date(),"-","withinChip_KRSA_Table_comp1.txt"), delim = "\t")
 
 # Extract top kinases based on abs(Z) score
 krsa_top_hits(AvgZTable2, 2) -> kinases_hits
@@ -413,7 +438,7 @@ krsa_show_peptides(sigPeps_total)
 
 \newpage
 
-### B vs A (Z Scores Plot)
+### JFC_comparand_a vs JFC_comparand_b (Z Scores Plot)
 
 We will plot the individual and averaged Z scores using both the across and within chip analyses.
 
@@ -427,7 +452,7 @@ krsa_zscores_plot(AvgZTable2)
 
 \newpage
 
-### B vs A (Reverse KRSA Plot)
+### JFC_comparand_a vs JFC_comparand_b (Reverse KRSA Plot)
 
 We will use the reverse KRSA plot function, to plot the log2 fold chnage values for all peptides mapped to kinase hits. This will help us examine the activity of the kinase
 
@@ -439,20 +464,20 @@ krsa_reverse_krsa_plot(chipCov, diff_df, kinases_hits, 0.2, byChip = F)
 
 \newpage
 
-### B vs A (Coverage Plot)
+### JFC_comparand_a vs JFC_comparand_b (Coverage Plot)
 
 To view the coverage of kinases across the full list of peptides on the chip, we will use the coverage plot function
 
 ```{r covPlot, echo=T, fig.align="center", fig.height=10,fig.width=8, cache=TRUE}
 
-# generates a kinase covergae plot 
+# generates a kinase coverage plot 
 krsa_coverage_plot(chipCov, AvgZTable2, chipType)
 
 ```
 
 \newpage
 
-### B vs A (Ball Model Network)
+### JFC_comparand_a vs JFC_comparand_b (Ball Model Network)
 
 We will view the ball model network function, to generate a model representing the protein-protein interactions between kinases
 
@@ -469,3 +494,159 @@ krsa_ball_model(kinases_hits, AvgZTable2, 10, 2.5, 4.8)
 ```{r}
 installed.packages()[names(sessionInfo()$otherPkgs), "Version"]
 ```
+
+
+
+############# KRSA Exports
+
+
+
+############# Per-Kinase Exports
+
+
+---
+title: "Per Peptide"
+author: "Khaled Alganem"
+date: "3/23/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = F, warning = F)
+
+library(KRSA)
+library(tidyverse)
+
+theme_set(theme_bw())
+```
+
+
+#### Per-Kinase Analyses
+```{r}
+
+#prepare data
+uka_mp <- readRDS("data-raw/uka_map_db.RDS")
+
+uka_mp %>% distinct(.keep_all = T) %>% 
+  mutate_if(is.factor, as.character) %>% 
+  filter(family == (paste0(JFC_chip_value))) %>% 
+  select(Kinase_Name, ID, Kinase_Rank) %>% 
+  rename(Kin = Kinase_Name, Substrates = ID) -> processed_uka_map
+
+processed_uka_map %>% 
+  group_by(Kin, Substrates) %>% 
+  mutate(minRank = min(Kinase_Rank)) %>% 
+  mutate(`Mapping Confidence` = case_when(
+    minRank == 0 ~ "High", 
+    minRank >= 1 & minRank <= 6  ~ "Medium",
+    minRank > 6 ~ "Low"
+  ),  `Mapping Confidence` = factor(`Mapping Confidence`, levels = c("High", "Medium", "Low"))) -> processed_uka_map
+
+```
+
+#### Per-Kinase Plots
+```{r, echo=FALSE}
+
+JFC_kinases_of_interest <- c("PKC[delta]","PKC[alpha]","PKA[alpha]","PKC[eta]","PKC[theta]","PKC[gamma]","PKC[beta]","PKG1","PKC[epsilon]","PKC[zeta]","Pim2","PKC[iota]","SGK2","Pim1","ROCK2","DAPK2","PKG2","PRKX","Pim3","Akt2/PKB[beta]","p70S6K[beta]","CK2[alpha]1","Akt1/PKB[alpha]","AMPK[alpha]1","CDK10")
+
+
+
+#Define kinases of interest
+
+#cmgc
+JFC_kinases_of_interest_group1 <- c("CK2[alpha]1","CDK10")
+
+#camk
+JFC_kinases_of_interest_group2 <- c("Pim1","Pim2","Pim3","DAPK2")
+
+#agc
+JFC_kinases_of_interest_group3 <- c("PKC[delta]","PKC[alpha]","PKA[alpha]","PKC[eta]","PKC[theta]","PKC[gamma]","PKC[beta]","PKG1","PKC[epsilon]","PKC[zeta]","PKC[iota]","SGK2","ROCK2","PKG2","PRKX","Akt2/PKB[beta]","p70S6K[beta]","Akt1/PKB[alpha]","AMPK[alpha]1")
+
+
+# take 10 random kinases as an example
+#sample(processed_uka_map$Kin, 10) -> top_kin
+
+
+# reverse krsa plot using specific kinases
+
+#group 1
+#png(file = (paste0(JFC_directory_output_comparison_pp,Sys.Date(),"-",JFC_experiment_ID,"-","group1",".png")),width = 4000,height = 4000,units = "px",pointsize = 24,res = 1200)
+krsa_reverse_krsa_plot(processed_uka_map, diff_df, kinases = JFC_kinases_of_interest_group1, 0.2, byChip = F) +
+  theme(axis.text.x = element_text(angle = 90))
+#dev.off()
+
+#pdf(file = (paste0(JFC_directory_output_comparison_pp,Sys.Date(),"-",JFC_experiment_ID,"-","group1",".pdf")),useDingbats = F)
+#krsa_reverse_krsa_plot(processed_uka_map, diff_df, kinases = JFC_kinases_of_interest_group1, 0.2, byChip = F) +
+#  theme(axis.text.x = element_text(angle = 90))
+#dev.off()
+
+
+#group 2
+#png(file = (paste0(JFC_directory_output_comparison_pp,Sys.Date(),"-",JFC_experiment_ID,"-","group2",".png")),width = 4000,height = 4000,units = "px",pointsize = 24,res = 1200)
+krsa_reverse_krsa_plot(processed_uka_map, diff_df, kinases = JFC_kinases_of_interest_group2, 0.2, byChip = F) +
+  theme(axis.text.x = element_text(angle = 90))
+#dev.off()
+
+#pdf(file = (paste0(JFC_directory_output_comparison_pp,Sys.Date(),"-",JFC_experiment_ID,"-","group2",".pdf")),useDingbats = F)
+#krsa_reverse_krsa_plot(processed_uka_map, diff_df, kinases = JFC_kinases_of_interest_group2, 0.2, byChip = F) +
+#  theme(axis.text.x = element_text(angle = 90))
+#dev.off()
+
+
+#group 3
+#png(file = (paste0(JFC_directory_output_comparison_pp,Sys.Date(),"-",JFC_experiment_ID,"-","group3",".png")),width = 4000,height = 4000,units = "px",pointsize = 24,res = 1200)
+krsa_reverse_krsa_plot(processed_uka_map, diff_df, kinases = JFC_kinases_of_interest_group3, 0.2, byChip = F) +
+  theme(axis.text.x = element_text(angle = 90))
+#dev.off()
+
+#pdf(file = (paste0(JFC_directory_output_comparison_pp,Sys.Date(),"-",JFC_experiment_ID,"-","group3",".pdf")),useDingbats = F)
+#krsa_reverse_krsa_plot(processed_uka_map, diff_df, kinases = JFC_kinases_of_interest_group2, 0.2, byChip = F) +
+#  theme(axis.text.x = element_text(angle = 90))
+#dev.off()
+
+
+
+
+
+
+# join lfc table and uka mapping table
+left_join(diff_df, processed_uka_map, by = c("Peptide" = "Substrates")) -> mapped_lfc_table
+
+
+# waterfall plot 
+mapped_lfc_table %>% 
+  # choose kinase to plot
+      #use this line if you want to filter from '10 random kinase list'
+        #filter(Kin %in% top_kin[5:6]) %>% 
+      #use this line if you want to use 'kinases of interest list' with subsetting [1] as first kinase
+        filter(Kin %in% JFC_kinases_of_interest[1]) %>% 
+  krsa_waterfall(0.2) +
+  facet_wrap(~Kin, scales = "free_y")
+
+
+#cols <- c("High" = "red", "Medium" = "blue", "Low" = "darkgreen")
+
+# per peptide plot with color representing kinase rank  
+mapped_lfc_table %>% 
+  #filter(Kin %in% top_kin[4]) %>% 
+  filter(Kin %in% JFC_kinases_of_interest[1]) %>% 
+  ggplot(aes(LFC, reorder(Peptide, totalMeanLFC))) +
+  geom_vline(xintercept = 0) +
+  geom_line(aes(color = `Mapping Confidence`), size = 5) +
+  geom_point(size = 3) +
+  geom_point(aes(totalMeanLFC, reorder(Peptide, totalMeanLFC)), size = 5) +
+  facet_wrap(~Kin, scales = "free_y") +
+  labs(y = NULL) +
+  theme(
+  legend.title = element_text(size = 8),
+  legend.text = element_text(size = 5), 
+  legend.key.size = unit(0.2, "cm"), 
+  axis.text.y = element_text(size = 5)
+  )
+
+
+
+
+
+```
+
