@@ -547,20 +547,24 @@ processed_uka_map %>%
 #### Per-Kinase Plots
 ```{r, echo=FALSE}
 
-JFC_kinases_of_interest <- c("PKC[delta]","PKC[alpha]","PKA[alpha]","PKC[eta]","PKC[theta]","PKC[gamma]","PKC[beta]","PKG1","PKC[epsilon]","PKC[zeta]","Pim2","PKC[iota]","SGK2","Pim1","ROCK2","DAPK2","PKG2","PRKX","Pim3","Akt2/PKB[beta]","p70S6K[beta]","CK2[alpha]1","Akt1/PKB[alpha]","AMPK[alpha]1","CDK10")
+
 
 
 
 #Define kinases of interest
 
-#cmgc
-JFC_kinases_of_interest_group1 <- c("CK2[alpha]1","CDK10")
+#all
+JFC_kinases_of_interest <- c("Lck","Fyn","Lyn","Abl","BLK","Src","Yes","HCK","Syk","CTK","ZAP70","Ron","DDR1","FRK","EphA2","Arg","FmS/CSFR","LTK","EphA1","TEC","EphA5","HER3","Fgr","InSR","Srm")
+
+
+#tk
+JFC_kinases_of_interest_group1 <- c("Lck","Fyn","Lyn","Abl","BLK","Src","Yes","HCK","Syk","CTK","ZAP70","Ron","DDR1","FRK","EphA2","Arg","FmS/CSFR","LTK","EphA1","TEC","EphA5","HER3","Fgr","InSR","Srm")
 
 #camk
-JFC_kinases_of_interest_group2 <- c("Pim1","Pim2","Pim3","DAPK2")
+#JFC_kinases_of_interest_group2 <- 
 
 #agc
-JFC_kinases_of_interest_group3 <- c("PKC[delta]","PKC[alpha]","PKA[alpha]","PKC[eta]","PKC[theta]","PKC[gamma]","PKC[beta]","PKG1","PKC[epsilon]","PKC[zeta]","PKC[iota]","SGK2","ROCK2","PKG2","PRKX","Akt2/PKB[beta]","p70S6K[beta]","Akt1/PKB[alpha]","AMPK[alpha]1")
+#JFC_kinases_of_interest_group3 <- 
 
 
 # take 10 random kinases as an example
